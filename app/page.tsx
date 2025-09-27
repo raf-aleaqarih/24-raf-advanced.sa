@@ -17,6 +17,10 @@ import { trackSnapEvent } from './components/SnapchatPixel';
 import { trackTikTokEvent } from './components/TikTokPixel';
 import { pushToDataLayer } from './components/GoogleTagManager';
 import { trackGoogleEvent } from './components/GoogleAnalytics';
+import ProjectImagesGallery from '../components/ProjectImagesGallery';
+import MapSection from '../components/MapSection';
+import { publicApartmentsApi, publicProjectApi, publicLocationFeaturesApi } from '../lib/api';
+import { useContactData } from '../hooks/useContactData';
 // import nodemailer from 'nodemailer';
 
 // Create a transporter object
@@ -33,7 +37,16 @@ import { trackGoogleEvent } from './components/GoogleAnalytics';
 export default function LandingPage({ platform: propPlatform, defaultMessage }: { platform?: string, defaultMessage?: string } = {}) {
   // Platform detection (would be server-side in production)
   const [platform, setPlatform] = useState<string>(propPlatform || "facebook")
-  // Platform detection (would be server-side in production)
+  
+  // استخدام hook جديد لإدارة بيانات التواصل
+  const { 
+    contactData, 
+    loading: contactLoading, 
+    error: contactError,
+    getPhoneNumber, 
+    getWelcomeMessage, 
+    getWhatsAppUrl 
+  } = useContactData()
 
   interface MobileModelCardProps {
     title: string;
@@ -145,6 +158,333 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
     };
   }, []);
 
+  // جلب بيانات المشروع من الخادم
+  useEffect(() => {
+    const fetchProjectData = async () => {
+      try {
+        setProjectLoading(true);
+        
+        // جلب معلومات المشروع
+        const projectInfoResponse = await publicProjectApi.getInfo();
+        if (projectInfoResponse.data.success) {
+          setProjectInfo(projectInfoResponse.data.data);
+        }
+        
+        // جلب مميزات المشروع
+        const featuresResponse = await publicProjectApi.getFeatures();
+        if (featuresResponse.data.success) {
+          setProjectFeatures(featuresResponse.data.data);
+        }
+        
+        // جلب ضمانات المشروع
+        const warrantiesResponse = await publicProjectApi.getWarranties();
+        if (warrantiesResponse.data.success) {
+          setProjectWarranties(warrantiesResponse.data.data);
+        }
+        
+        // جلب مميزات الموقع
+        const locationFeaturesResponse = await publicLocationFeaturesApi.getAll();
+        if (locationFeaturesResponse.data.success && locationFeaturesResponse.data.data) {
+          setLocationFeatures(locationFeaturesResponse.data.data);
+        }
+        
+      } catch (err) {
+        console.error('Error fetching project data:', err);
+      } finally {
+        setProjectLoading(false);
+      }
+    };
+
+    fetchProjectData();
+  }, []);
+
+  const [apartmentsRefreshKey, setApartmentsRefreshKey] = useState<number>(0);
+
+  // دالة لإعادة تحميل النماذج
+  const refreshApartments = () => {
+    setApartmentsRefreshKey(prev => prev + 1);
+  };
+
+  // جلب بيانات النماذج من الخادم
+  useEffect(() => {
+    const fetchApartments = async () => {
+      try {
+        setApartmentsLoading(true);
+        const response = await publicApartmentsApi.getAll();
+        
+        if (response.data.success && response.data.data && response.data.data.length > 0) {
+          // ترتيب النماذج حسب modelName
+          const sortedApartments = response.data.data.sort((a: any, b: any) => 
+            a.modelName.localeCompare(b.modelName)
+          );
+          setApartments(sortedApartments);
+          console.log('تم تحميل النماذج بنجاح:', sortedApartments.length);
+        } else {
+          console.log('لا توجد نماذج متاحة من الخادم، استخدام البيانات الثابتة');
+          // استخدام البيانات الثابتة فقط إذا لم توجد بيانات من الخادم
+          const fallbackData = [
+          {
+            _id: 'fallback-a',
+            modelName: 'A',
+            modelTitle: 'نموذج A',
+            modelSubtitle: 'على شارع جنوبي شرقي',
+            price: 830000,
+            area: 156,
+            roofArea: 156,
+            rooms: 4,
+            bathrooms: 4,
+            location: 'قريب من المطار',
+            direction: 'جنوبي شرقي',
+            images: ['/a.jpg'],
+            features: [
+              "غرفة خادمة",
+              "غرفة سائق",
+              "شقق مودرن",
+              "أسقف مرتفعة",
+              "نوافذ كبيرة",
+              "صالة",
+              "مطبخ",
+              "بلكونة",
+              "سمارت هوم",
+              "موقف خاص",
+              "مصعد",
+              "كاميرات مراقبة",
+            ]
+          },
+          {
+            _id: 'fallback-b',
+            modelName: 'B',
+            modelTitle: 'نموذج B',
+            modelSubtitle: 'خلفية شرقي شمالي غربي',
+            price: 930000,
+            area: 190,
+            roofArea: 190,
+            rooms: 5,
+            bathrooms: 4,
+            location: 'قريب من المطار',
+            direction: 'شرقي شمالي غربي',
+            images: ['/b.jpg'],
+            features: [
+              "غرفة خادمة",
+              "غرفة سائق",
+              "شقق مودرن",
+              "أسقف مرتفعة",
+              "نوافذ كبيرة",
+              "صالة",
+              "مطبخ",
+              "بلكونة",
+              "سمارت هوم",
+              "موقف خاص",
+              "مصعد",
+              "كاميرات مراقبة",
+            ]
+          },
+          {
+            _id: 'fallback-c',
+            modelName: 'C',
+            modelTitle: 'نموذج C',
+            modelSubtitle: 'واجهة جنوبية غربية',
+            price: 830000,
+            area: 156,
+            roofArea: 0,
+            rooms: 4,
+            bathrooms: 4,
+            location: 'قريب من المطار',
+            direction: 'جنوبية غربية',
+            images: ['/c.jpg'],
+            features: [
+              "غرفة خادمة",
+              "غرفة سائق",
+              "شقق مودرن",
+              "أسقف مرتفعة",
+              "نوافذ كبيرة",
+              "صالة",
+              "مطبخ",
+              "بلكونة",
+              "سمارت هوم",
+              "موقف خاص",
+              "مصعد",
+              "كاميرات مراقبة",
+            ]
+          },
+          {
+            _id: 'fallback-d',
+            modelName: 'D',
+            modelTitle: 'نموذج D',
+            modelSubtitle: 'ملحق شرقي شمالي',
+            price: 1350000,
+            area: 180,
+            roofArea: 40,
+            rooms: 5,
+            bathrooms: 5,
+            location: 'قريب من المطار',
+            direction: 'شرقي شمالي',
+            images: ['/a.jpg'],
+            features: [
+              "غرفة خادمة",
+              "غرفة سائق",
+              "شقق مودرن",
+              "أسقف مرتفعة",
+              "نوافذ كبيرة",
+              "صالة",
+              "مطبخ",
+              "بلكونة",
+              "سمارت هوم",
+              "موقف خاص",
+              "مصعد",
+              "كاميرات مراقبة",
+              "اجمالي المساحه 220 متر"
+            ]
+          }
+          ];
+          setApartments(fallbackData);
+        }
+      } catch (err) {
+        console.error('Error fetching apartments:', err);
+        // في حالة فشل الاتصال، استخدم البيانات الثابتة كبديل
+        const fallbackData = [
+          {
+            _id: 'fallback-a',
+            modelName: 'A',
+            modelTitle: 'نموذج A',
+            modelSubtitle: 'على شارع جنوبي شرقي',
+            price: 830000,
+            area: 156,
+            roofArea: 156,
+            rooms: 4,
+            bathrooms: 4,
+            location: 'قريب من المطار',
+            direction: 'جنوبي شرقي',
+            images: ['/a.jpg'],
+            features: [
+              "غرفة خادمة",
+              "غرفة سائق",
+              "شقق مودرن",
+              "أسقف مرتفعة",
+              "نوافذ كبيرة",
+              "صالة",
+              "مطبخ",
+              "بلكونة",
+              "سمارت هوم",
+              "موقف خاص",
+              "مصعد",
+              "كاميرات مراقبة",
+            ]
+          },
+          {
+            _id: 'fallback-b',
+            modelName: 'B',
+            modelTitle: 'نموذج B',
+            modelSubtitle: 'خلفية شرقي شمالي غربي',
+            price: 930000,
+            area: 190,
+            roofArea: 190,
+            rooms: 5,
+            bathrooms: 4,
+            location: 'قريب من المطار',
+            direction: 'شرقي شمالي غربي',
+            images: ['/b.jpg'],
+            features: [
+              "غرفة خادمة",
+              "غرفة سائق",
+              "شقق مودرن",
+              "أسقف مرتفعة",
+              "نوافذ كبيرة",
+              "صالة",
+              "مطبخ",
+              "بلكونة",
+              "سمارت هوم",
+              "موقف خاص",
+              "مصعد",
+              "كاميرات مراقبة",
+            ]
+          },
+          {
+            _id: 'fallback-c',
+            modelName: 'C',
+            modelTitle: 'نموذج C',
+            modelSubtitle: 'واجهة جنوبية غربية',
+            price: 830000,
+            area: 156,
+            roofArea: 0,
+            rooms: 4,
+            bathrooms: 4,
+            location: 'قريب من المطار',
+            direction: 'جنوبية غربية',
+            images: ['/c.jpg'],
+            features: [
+              "غرفة خادمة",
+              "غرفة سائق",
+              "شقق مودرن",
+              "أسقف مرتفعة",
+              "نوافذ كبيرة",
+              "صالة",
+              "مطبخ",
+              "بلكونة",
+              "سمارت هوم",
+              "موقف خاص",
+              "مصعد",
+              "كاميرات مراقبة",
+            ]
+          },
+          {
+            _id: 'fallback-d',
+            modelName: 'D',
+            modelTitle: 'نموذج D',
+            modelSubtitle: 'ملحق شرقي شمالي',
+            price: 1350000,
+            area: 180,
+            roofArea: 40,
+            rooms: 5,
+            bathrooms: 5,
+            location: 'قريب من المطار',
+            direction: 'شرقي شمالي',
+            images: ['/a.jpg'],
+            features: [
+              "غرفة خادمة",
+              "غرفة سائق",
+              "شقق مودرن",
+              "أسقف مرتفعة",
+              "نوافذ كبيرة",
+              "صالة",
+              "مطبخ",
+              "بلكونة",
+              "سمارت هوم",
+              "موقف خاص",
+              "مصعد",
+              "كاميرات مراقبة",
+              "اجمالي المساحه 220 متر"
+            ]
+          }
+        ];
+        setApartments(fallbackData);
+      } finally {
+        setApartmentsLoading(false);
+      }
+    };
+
+    fetchApartments();
+  }, [apartmentsRefreshKey]);
+
+  // التحقق من النماذج الجديدة كل 30 ثانية
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshApartments();
+    }, 30000); // 30 ثانية
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // التحقق من النماذج الجديدة عند التركيز على النافذة
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshApartments();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
   const addToRefs = (el: HTMLElement | null, index: number) => {
     if (el && !observerRefs.current.includes(el)) {
       observerRefs.current[index] = el
@@ -156,6 +496,15 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
   };
 
   const [selectedModel, setSelectedModel] = useState(0);
+  const [apartments, setApartments] = useState<any[]>([]);
+  const [apartmentsLoading, setApartmentsLoading] = useState(true);
+  
+  // Project data states
+  const [projectInfo, setProjectInfo] = useState<any>(null);
+  const [projectFeatures, setProjectFeatures] = useState<any[]>([]);
+  const [projectWarranties, setProjectWarranties] = useState<any[]>([]);
+  const [locationFeatures, setLocationFeatures] = useState<any>({});
+  const [projectLoading, setProjectLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ name: '', phone: '', message: defaultMessage || '' });
@@ -313,25 +662,12 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
     }
   ];
 
-  // Get platform-specific phone number
-  const getPhoneNumber = () => {
-    switch(platform) {
-      case 'meta':
-        return '0555812257';
-      case 'snapchat':
-        return '0543766262';
-      case 'tiktok':
-        return '0539488805';
-      case 'google':
-        return '0552845403';
-      default:
-        return '0536667967'; // Default number
-    }
-  };
+  // استخدام الدالة الجديدة من hook
+  // getPhoneNumber الآن متاحة من useContactData hook
 
   // Add phone tracking function
   const handlePhoneClick = () => {
-    const phoneNumber = getPhoneNumber();
+    const phoneNumber = getPhoneNumber(platform);
     const timestamp = new Date().toISOString();
     const eventData = {
       event_time: timestamp,
@@ -358,22 +694,41 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
   };
 
   // Add WhatsApp tracking function
+  // دالة لعرض الأيقونة المناسبة للميزة
+  const getFeatureIcon = (iconName: string) => {
+    const iconProps = "h-6 w-6 text-[#c48765] ml-3 flex-shrink-0";
+    
+    switch (iconName) {
+      case 'MapPin':
+        return <MapPin className={iconProps} />;
+      case 'Building2':
+        return <Building2 className={iconProps} />;
+      case 'Shield':
+        return <Shield className={iconProps} />;
+      case 'Home':
+        return <Home className={iconProps} />;
+      case 'Car':
+        return <Car className={iconProps} />;
+      case 'Wifi':
+        return <Wifi className={iconProps} />;
+      case 'StoreIcon':
+        return <StoreIcon className={iconProps} />;
+      case 'Plane':
+        return <Plane className={iconProps} />;
+      default:
+        return <Home className={iconProps} />; // أيقونة افتراضية
+    }
+  };
+
   const handleWhatsAppClick = () => {
     const timestamp = new Date().toISOString();
-    const phoneNumber = getPhoneNumber();
-    const welcomeMessages = {
-      snapchat: "السلام عليكم ورحمة الله، ارغب بالاستفسار عن المشروع",
-      tiktok: "مرحباً ، السلام عليكم ورحمة الله، ارغب بالاستفسار عن المشروع",
-      meta: "مرحباً، أرغب بالاستفسار عن المشروع",
-      google: "السلام عليكم ورحمة الله وبركاته، ارغب بالاستفسار عن المشروع",
-      facebook: "السلام عليكم ورحمة الله وبركاته 🌟\nأرغب بالاستفسار عن مشروع 24 - حي الزهراء في جدة"
-    };
-    const message = welcomeMessages[platform as keyof typeof welcomeMessages] || welcomeMessages.facebook;
     
-    // Convert phone number to international format for WhatsApp (remove leading 0 and add 966)
-    const whatsappNumber = '966' + phoneNumber.substring(1);
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+    // استخدام النظام الجديد للحصول على رابط الواتساب
+    const whatsappUrl = getWhatsAppUrl(platform);
     window.open(whatsappUrl, '_blank');
+    
+    // استخراج رقم الواتساب من الرابط للتتبع
+    const whatsappNumber = whatsappUrl.match(/wa\.me\/(\d+)/)?.[1] || '';
 
     const eventData = {
       event_time: timestamp,
@@ -507,14 +862,15 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
         <div className="container mx-auto px-4 relative"> {/* Added relative positioning */}
           <div className="text-center mb-16 max-w-3xl mx-auto">
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-              مشروع سكني متميز <br />في حي الزهراء بجدة
+              {projectInfo?.projectName || 'مشروع سكني متميز'} <br />
+              {projectInfo?.location?.district || projectInfo?.location?.address || 'في حي الزهراء بجدة'}
             </h1>
         
             <h2 className="text-2xl md:text-3xl text-white font-medium mb-4">
-              بأسعار تبدأ من 830,000 ريال 
+              {projectInfo?.startingPrice ? `بأسعار تبدأ من ${projectInfo.startingPrice.toLocaleString()} ${projectInfo.currency || 'ريال'}` : 'بأسعار تبدأ من 830,000 ريال'}
             </h2>
             <p className="text-xl md:text-2xl text-white/90 mt-4">
-              امتلك منزل أحلامك في أفضل مواقع جدة
+              {projectInfo?.description || 'امتلك منزل أحلامك في أفضل مواقع جدة'}
             </p>
           </div>
  
@@ -601,81 +957,10 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
       </section> */}
 
       {/* Project Images */}
-      <section ref={(el) => addToRefs(el, 0)} className="py-10 bg-white">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={isVisible[0] ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-6"
-          >
-            <h2 className="text-2xl md:text-3xl font-bold text-center">صور المشروع</h2>
-            <div className="w-16 h-1 bg-[#c48765] mr-auto ml-auto mt-2"></div>
-          </motion.div>
+      <div ref={(el) => addToRefs(el, 0)}>
+        <ProjectImagesGallery isVisible={isVisible[0]} />
+      </div>
 
-          <div className="relative">
-            <div className="flex overflow-x-auto pb-6 gap-6 snap-x snap-mandatory scrollbar-hide">
-              {[1, 2, 3, 4, 5].map((item, index) => (
-                <motion.div
-                  key={item}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={isVisible[0] ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="relative aspect-square w-[300px] md:w-[400px] lg:w-[500px] flex-none snap-center rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
-                >
-                  <Image
-                    src={`/${item}.jpg`}
-                    alt={`صورة المشروع ${item}`}
-                    fill
-                    className="object-cover hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-                  <div className="absolute bottom-4 right-4 text-white">
-                    <p className="text-sm md:text-base font-medium">صورة المشروع</p>
-                    <p className="text-xs md:text-sm">منظر خارجي</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-            
-            {/* Navigation arrows for all screens */}
-            <div className="block">
-              <button 
-                className="absolute top-1/2 right-2 md:right-4 -translate-y-1/2 bg-white/90 backdrop-blur-sm p-2 md:p-3 rounded-full shadow-lg hover:bg-white transition-colors z-10"
-                onClick={() => {
-                  const container = document.querySelector('.overflow-x-auto');
-                  if (container) {
-                    container.scrollBy({ left: -300, behavior: 'smooth' });
-                  }
-                }}
-              >
-                <ChevronDown className="h-4 w-4 md:h-6 md:w-6 -rotate-90 text-[#c48765]" />
-              </button>
-              <button 
-                className="absolute top-1/2 left-2 md:left-4 -translate-y-1/2 bg-white/90 backdrop-blur-sm p-2 md:p-3 rounded-full shadow-lg hover:bg-white transition-colors z-10"
-                onClick={() => {
-                  const container = document.querySelector('.overflow-x-auto');
-                  if (container) {
-                    container.scrollBy({ left: 300, behavior: 'smooth' });
-                  }
-                }}
-              >
-                <ChevronDown className="h-4 w-4 md:h-6 md:w-6 rotate-90 text-[#c48765]" />
-              </button>
-            </div>
-
-            {/* Scroll indicator dots */}
-            <div className="flex justify-center gap-2 mt-4">
-              {[1, 2, 3].map((_, index) => (
-                <div
-                  key={index}
-                  className="w-2 h-2 rounded-full bg-[#c48765]/50"
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
       {/* Expandable Sections */}
 <section className="py-12 bg-gradient-to-b from-slate-50 to-white">
   <div className="container mx-auto px-4">
@@ -687,7 +972,15 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
           <h3 className="text-2xl font-bold mr-4">مميزات المشروع</h3>
         </div>
         <ul className="space-y-4 flex-grow">
-          {[
+          {Array.isArray(projectFeatures) && projectFeatures.filter(feature => feature.featureType === 'project' || !feature.featureType).length > 0 ? 
+            projectFeatures
+              .filter(feature => feature.featureType === 'project' || !feature.featureType)
+              .map((feature, index) => (
+                <li key={feature._id || index} className="flex items-center p-4 bg-amber-50/50 rounded-xl hover:bg-amber-50 transition-all duration-200">
+                  {getFeatureIcon(feature.icon || 'Home')}
+                  <span className="text-base">{feature.title || 'ميزة'}</span>
+                </li>
+              )) : [
                   {
                     text: "موقع إستراتيجي قريب من الواجهة البحرية",
                     icon: <MapPin className="h-6 w-6 text-[#c48765] ml-3 flex-shrink-0" />
@@ -727,7 +1020,7 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
         </button>
       </div>
 
-      {/* Location Card */}
+        {/* Location Card */}
       <div className="bg-white p-8 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col">
         <div className="flex items-center mb-8">
           <MapPin className="h-10 w-10 text-[#c48765]" />
@@ -735,12 +1028,82 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
         </div>
         <div className="space-y-6 flex-grow">
           <div className="grid grid-cols-1 gap-6">
-            <div className="bg-amber-50/50 p-6 rounded-xl hover:bg-amber-50 transition-all duration-200">
-              <h4 className="text-lg font-bold mb-4">قريب من:</h4>
-              <ul className="space-y-3">
-                      {[
-                        {
-                          text: "الشوارع الرئيسية", icon:
+            {/* عرض مميزات الموقع من API الجديد */}
+            {locationFeatures && Object.keys(locationFeatures).length > 0 ? (
+              <div className="grid grid-cols-1 gap-6">
+                {/* مجموعة قريب من */}
+                {locationFeatures.nearby && locationFeatures.nearby.length > 0 && (
+                  <div className="bg-amber-50/50 p-6 rounded-xl hover:bg-amber-50 transition-all duration-200">
+                    <h4 className="text-lg font-bold mb-4">قريب من:</h4>
+                    <ul className="space-y-3">
+                      {locationFeatures.nearby.map((feature: any, index: number) => (
+                        <li key={feature._id || index} className="flex items-center">
+                          {getFeatureIcon(feature.icon || 'MapPin')}
+                          <span className="text-base">{feature.title || 'ميزة موقع'}</span>
+                          {feature.distance && (
+                            <span className="text-sm text-gray-500 mr-2">({feature.distance})</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {/* مجموعة دقائق من */}
+                {locationFeatures.minutesFrom && locationFeatures.minutesFrom.length > 0 && (
+                  <div className="bg-amber-50/50 p-6 rounded-xl hover:bg-amber-50 transition-all duration-200">
+                    <h4 className="text-lg font-bold mb-4">دقائق من:</h4>
+                    <ul className="space-y-3">
+                      {locationFeatures.minutesFrom.map((feature: any, index: number) => (
+                        <li key={feature._id || index} className="flex items-center">
+                          {getFeatureIcon(feature.icon || 'MapPin')}
+                          <span className="text-base">{feature.title || 'ميزة موقع'}</span>
+                          {feature.distance && (
+                            <span className="text-sm text-gray-500 mr-2">({feature.distance})</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* الفئات الأخرى */}
+                {['transport', 'services', 'entertainment'].map((category) => {
+                  if (!locationFeatures[category] || locationFeatures[category].length === 0) return null;
+                  
+                  const categoryLabels: { [key: string]: string } = {
+                    transport: 'المواصلات',
+                    services: 'الخدمات',
+                    entertainment: 'الترفيه'
+                  };
+                  
+                  return (
+                    <div key={category} className="bg-amber-50/50 p-6 rounded-xl hover:bg-amber-50 transition-all duration-200">
+                      <h4 className="text-lg font-bold mb-4">{categoryLabels[category]}:</h4>
+                      <ul className="space-y-3">
+                        {locationFeatures[category].map((feature: any, index: number) => (
+                          <li key={feature._id || index} className="flex items-center">
+                            {getFeatureIcon(feature.icon || 'MapPin')}
+                            <span className="text-base">{feature.title || 'ميزة موقع'}</span>
+                            {feature.distance && (
+                              <span className="text-sm text-gray-500 mr-2">({feature.distance})</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* مميزات افتراضية إذا لم توجد بيانات من API */
+              <div className="grid grid-cols-1 gap-6">
+                <div className="bg-amber-50/50 p-6 rounded-xl hover:bg-amber-50 transition-all duration-200">
+                  <h4 className="text-lg font-bold mb-4">قريب من:</h4>
+                  <ul className="space-y-3">
+                    {[
+                      {
+                        text: "الشوارع الرئيسية", icon:
 <svg 
   fill="#c48765" 
   className="h-6 w-6 text-[#c48765] ml-3 flex-shrink-0"
@@ -759,78 +1122,80 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
   <g id="SVGRepo_iconCarrier">
     <g>
       <g>
-        <path d="M366.933,0h-102.4v25.6c0,4.719-3.823,8.533-8.533,8.533c-4.71,0-8.533-3.814-8.533-8.533V0h-102.4 c-4.71,0-8.533,3.814-8.533,8.533v494.933c0,4.719,3.823,8.533,8.533,8.533h102.4v-25.6c0-4.719,3.823-8.533,8.533-8.533 c4.71,0,8.533,3.814,8.533,8.533V512h102.4c4.71,0,8.533-3.814,8.533-8.533V8.533C375.467,3.814,371.644,0,366.933,0z M196.267,307.2c0,4.719-3.823,8.533-8.533,8.533s-8.533-3.814-8.533-8.533V204.8c0-4.719,3.823-8.533,8.533-8.533 s8.533,3.814,8.533,8.533V307.2z M230.4,307.2c0,4.719-3.823,8.533-8.533,8.533c-4.71,0-8.533-3.814-8.533-8.533V204.8 c0-4.719,3.823-8.533,8.533-8.533c4.71,0,8.533,3.814,8.533,8.533V307.2z M264.533,441.6c0,4.719-3.823,8.533-8.533,8.533 c-4.71,0-8.533-3.814-8.533-8.533v-29.867c0-4.719,3.823-8.533,8.533-8.533c4.71,0,8.533,3.814,8.533,8.533V441.6z M264.533,366.933c0,4.719-3.823,8.533-8.533,8.533c-4.71,0-8.533-3.814-8.533-8.533v-17.067c0-4.719,3.823-8.533,8.533-8.533 c4.71,0,8.533,3.814,8.533,8.533V366.933z M264.533,307.2c0,4.719-3.823,8.533-8.533,8.533c-4.71,0-8.533-3.814-8.533-8.533V204.8 c0-4.719,3.823-8.533,8.533-8.533c4.71,0,8.533,3.814,8.533,8.533V307.2z M264.533,162.133c0,4.719-3.823,8.533-8.533,8.533 c-4.71,0-8.533-3.814-8.533-8.533v-17.067c0-4.719,3.823-8.533,8.533-8.533c4.71,0,8.533,3.814,8.533,8.533V162.133z M264.533,100.267c0,4.719-3.823,8.533-8.533,8.533c-4.71,0-8.533-3.814-8.533-8.533V70.4c0-4.719,3.823-8.533,8.533-8.533 c4.71,0,8.533,3.814,8.533,8.533V100.267z M298.667,307.2c0,4.719-3.823,8.533-8.533,8.533c-4.71,0-8.533-3.814-8.533-8.533V204.8 c0-4.719,3.823-8.533,8.533-8.533c4.71,0,8.533,3.814,8.533,8.533V307.2z M332.8,307.2c0,4.719-3.823,8.533-8.533,8.533 s-8.533-3.814-8.533-8.533V204.8c0-4.719,3.823-8.533,8.533-8.533s8.533,3.814,8.533,8.533V307.2z"></path>
+        <path d="M366.933,0h-102.4v25.6c0,4.719-3.823,8.533-8.533,8.533c-4.71,0-8.533-3.814-8.533-8.533V0h-102.4 c-4.71,0-8.533,3.814-8.533,8.533v494.933c0,4.719,3.823,8.533,8.533,8.533h102.4v-25.6c0-4.719,3.823-8.533,8.533-8.533 c4.71,0,8.533,3.814,8.533,8.533V512h102.4c4.71,0,8.533-3.814,8.533-8.533V8.533C375.467,3.814,371.644,0,366.933,0z M196.267,307.2c0,4.719-3.823,8.533-8.533,8.533s-8.533-3.814-8.533-8.533V204.8c0-4.719,3.823,8.533,8.533-8.533 s8.533,3.814,8.533,8.533V307.2z M230.4,307.2c0,4.719-3.823,8.533-8.533,8.533c-4.71,0-8.533-3.814-8.533-8.533V204.8 c0-4.719,3.823-8.533,8.533-8.533c4.71,0,8.533,3.814,8.533,8.533V307.2z M264.533,441.6c0,4.719-3.823,8.533-8.533,8.533 c-4.71,0-8.533-3.814-8.533-8.533v-29.867c0-4.719,3.823-8.533,8.533-8.533c4.71,0,8.533,3.814,8.533,8.533V441.6z M264.533,366.933c0,4.719-3.823,8.533-8.533,8.533c-4.71,0-8.533-3.814-8.533-8.533v-17.067c0-4.719,3.823-8.533,8.533-8.533 c4.71,0,8.533,3.814,8.533,8.533V366.933z M264.533,307.2c0,4.719-3.823,8.533-8.533,8.533c-4.71,0-8.533-3.814-8.533-8.533V204.8 c0-4.719,3.823-8.533,8.533-8.533c4.71,0,8.533,3.814,8.533,8.533V307.2z M264.533,162.133c0,4.719-3.823,8.533-8.533,8.533 c-4.71,0-8.533-3.814-8.533-8.533v-17.067c0-4.719,3.823-8.533,8.533-8.533c4.71,0,8.533,3.814,8.533,8.533V162.133z M264.533,100.267c0,4.719-3.823,8.533-8.533,8.533c-4.71,0-8.533-3.814-8.533-8.533V70.4c0-4.719,3.823-8.533,8.533-8.533 c4.71,0,8.533,3.814,8.533,8.533V100.267z M298.667,307.2c0,4.719-3.823,8.533-8.533,8.533c-4.71,0-8.533-3.814-8.533-8.533V204.8 c0-4.719,3.823-8.533,8.533-8.533c4.71,0,8.533,3.814,8.533,8.533V307.2z M332.8,307.2c0,4.719-3.823,8.533-8.533,8.533 s-8.533-3.814-8.533-8.533V204.8c0-4.719,3.823-8.533,8.533-8.533s8.533,3.814,8.533,8.533V307.2z"></path>
       </g>
     </g>
   </g>
 </svg>
-                        },
-                        { text: "مسجد قريب", icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#c48765] ml-3 flex-shrink-0" enableBackground="new 0 0 24 24" viewBox="0 0 24 24" fill="currentColor"><g><rect fill="none" height="24" width="24" /></g><g><g><path d="M7,8h10c0.29,0,0.57,0.06,0.84,0.13C17.93,7.8,18,7.46,18,7.09c0-1.31-0.65-2.53-1.74-3.25L12,1L7.74,3.84 C6.65,4.56,6,5.78,6,7.09C6,7.46,6.07,7.8,6.16,8.13C6.43,8.06,6.71,8,7,8z" /><path d="M24,7c0-1.1-2-3-2-3s-2,1.9-2,3c0,0.74,0.4,1.38,1,1.72V13h-2v-2c0-1.1-0.9-2-2-2H7c-1.1,0-2,0.9-2,2v2H3V8.72 C3.6,8.38,4,7.74,4,7c0-1.1-2-3-2-3S0,5.9,0,7c0,0.74,0.4,1.38,1,1.72V21h9v-4c0-1.1,0.9-2,2-2s2,0.9,2,2v4h9V8.72 C23.6,8.38,24,7.74,24,7z" /></g></g></svg> },
-                        { text: "الخدمات", icon: <StoreIcon className="h-6 w-6 text-[#c48765] ml-3 flex-shrink-0" /> },
-                        { text: "المراكز التجارية", icon: <Building2 className="h-6 w-6 text-[#c48765] ml-3 flex-shrink-0" /> },
-                        { text: "المطار", icon: <Plane className="h-6 w-6 text-[#c48765] ml-3 flex-shrink-0" /> }
-                      ].map((item, index) => (
-                  <li key={index} className="flex items-center">
-                          {item.icon}
-                          <span className="text-base">{item.text}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="bg-amber-50/50 p-6 rounded-xl hover:bg-amber-50 transition-all duration-200">
-              <h4 className="text-lg font-bold mb-4">دقائق من:</h4>
-              <ul className="space-y-3">
-                      {[
-                        {
-                          text: "طريق الأمير سلطان",
-                          icon: (
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg" 
-                              className="h-6 w-6 text-[#c48765] ml-3 flex-shrink-0"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M4 19L8 19" />
-                              <path d="M12 19L20 19" />
-                              <path d="M4 15L20 15" />
-                              <path d="M4 11L20 11" />
-                              <path d="M4 7L20 7" />
-                              <path d="M4 3L20 3" />
-                            </svg>
-                          ),
-                        },
-                        {
-                          text: "شارع حراء",
-                          icon: (
-                            <svg 
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-6 w-6 text-[#c48765] ml-3 flex-shrink-0"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor" 
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M3 3L21 21" />
-                              <path d="M21 3L3 21" />
-                              <rect x="7" y="7" width="10" height="10" />
-                              <path d="M12 7V17" />
-                              <path d="M7 12H17" />
-                            </svg>
-                          ),
-                        }].map((item, index) => (
-                  <li key={index} className="flex items-center">
-                            {item.icon}
-                            <span className="text-base">{item.text}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                      },
+                      { text: "مسجد قريب", icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#c48765] ml-3 flex-shrink-0" enableBackground="new 0 0 24 24" viewBox="0 0 24 24" fill="currentColor"><g><rect fill="none" height="24" width="24" /></g><g><g><path d="M7,8h10c0.29,0,0.57,0.06,0.84,0.13C17.93,7.8,18,7.46,18,7.09c0-1.31-0.65-2.53-1.74-3.25L12,1L7.74,3.84 C6.65,4.56,6,5.78,6,7.09C6,7.46,6.07,7.8,6.16,8.13C6.43,8.06,6.71,8,7,8z" /><path d="M24,7c0-1.1-2-3-2-3s-2,1.9-2,3c0,0.74,0.4,1.38,1,1.72V13h-2v-2c0-1.1-0.9-2-2-2H7c-1.1,0-2,0.9-2,2v2H3V8.72 C3.6,8.38,4,7.74,4,7c0-1.1-2-3-2-3S0,5.9,0,7c0,0.74,0.4,1.38,1,1.72V21h9v-4c0-1.1,0.9-2,2-2s2,0.9,2,2v4h9V8.72 C23.6,8.38,24,7.74,24,7z" /></g></g></svg> },
+                      { text: "الخدمات", icon: <StoreIcon className="h-6 w-6 text-[#c48765] ml-3 flex-shrink-0" /> },
+                      { text: "المراكز التجارية", icon: <Building2 className="h-6 w-6 text-[#c48765] ml-3 flex-shrink-0" /> },
+                      { text: "المطار", icon: <Plane className="h-6 w-6 text-[#c48765] ml-3 flex-shrink-0" /> }
+                    ].map((item, index) => (
+                      <li key={index} className="flex items-center">
+                        {item.icon}
+                        <span className="text-base">{item.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="bg-amber-50/50 p-6 rounded-xl hover:bg-amber-50 transition-all duration-200">
+                  <h4 className="text-lg font-bold mb-4">دقائق من:</h4>
+                  <ul className="space-y-3">
+                    {[
+                      {
+                        text: "طريق الأمير سلطان",
+                        icon: (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg" 
+                            className="h-6 w-6 text-[#c48765] ml-3 flex-shrink-0"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M4 19L8 19" />
+                            <path d="M12 19L20 19" />
+                            <path d="M4 15L20 15" />
+                            <path d="M4 11L20 11" />
+                            <path d="M4 7L20 7" />
+                            <path d="M4 3L20 3" />
+                          </svg>
+                        ),
+                      },
+                      {
+                        text: "شارع حراء",
+                        icon: (
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-6 w-6 text-[#c48765] ml-3 flex-shrink-0"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor" 
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M3 3L21 21" />
+                            <path d="M21 3L3 21" />
+                            <rect x="7" y="7" width="10" height="10" />
+                            <path d="M12 7V17" />
+                            <path d="M7 12H17" />
+                          </svg>
+                        ),
+                      }].map((item, index) => (
+                      <li key={index} className="flex items-center">
+                        {item.icon}
+                        <span className="text-base">{item.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <button
@@ -898,7 +1263,15 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
         <h3 className="text-2xl font-bold mr-4">ضمانات المشروع</h3>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {[
+        {Array.isArray(projectWarranties) && projectWarranties.length > 0 ? projectWarranties.map((warranty, index) => (
+          <div key={warranty._id || index} className="p-4 bg-amber-50/50 rounded-xl hover:bg-amber-50 transition-all duration-200 flex flex-col justify-center">
+            <div className="text-2xl font-bold text-[#c48765]">{warranty.years}</div>
+            <div className="text-sm font-medium">
+              {warranty.years === 1 ? "سنة" : warranty.years === 2 ? "سنتين" : "سنوات"}
+            </div>
+            <div className="text-base mt-2">{warranty.description}</div>
+          </div>
+        )) : [
                 { years: "20", description: "القواطع والأفياش" },
           { years: "20", description: "الهيكل الإنشائي" },
           { years: "5", description: "المصاعد" },
@@ -924,6 +1297,7 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
     </div>
   </div>
 </section>
+
       {/* Project Models */}
       <section ref={(el) => addToRefs(el, 2)} className="py-10 bg-gradient-to-b from-slate-50 to-white">
         <div className="container mx-auto px-4">
@@ -937,173 +1311,61 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
             <div className="w-16 h-1 bg-[#c48765] mr-auto ml-auto mt-2"></div>
           </motion.div>
           
+          {apartmentsLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c48765] mx-auto"></div>
+              <p className="mt-4 text-gray-600">جاري تحميل النماذج...</p>
+            </div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={isVisible[2] ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.8, delay: 0.2 }}
+            >
+              <Tabs defaultValue={`model-${apartments[0]?.modelName?.toLowerCase() || 'a'}`} className="w-full">
+                <div className="mb-6 overflow-x-auto">
+                  <TabsList className={`grid bg-slate-100 p-1 rounded-full w-full min-w-max ${apartments && apartments.length <= 4 ? 'grid-cols-4' : apartments && apartments.length <= 6 ? 'grid-cols-6' : apartments && apartments.length <= 8 ? 'grid-cols-8' : 'grid-cols-10'}`}>
+                  {apartments && apartments.map((apartment, index) => (
+                    <TabsTrigger
+                      key={index}
+                      value={`model-${apartment.modelName.toLowerCase()}`}
+                      className="rounded-full data-[state=active]:bg-[#c48765] data-[state=active]:text-white py-2"
+                    >
+                      {apartment.modelName}
+                    </TabsTrigger>
+                  ))}
+                  </TabsList>
+                </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={isVisible[2] ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            <Tabs defaultValue="model-a" className="w-full">
-              <TabsList className="grid grid-cols-4 mb-6 bg-slate-100 p-1 rounded-full w-full ">
-                {["A", "B", "C", "D"].map((model, index) => (
-                  <TabsTrigger
-                    key={index}
-                    value={`model-${model.toLowerCase()}`}
-                    className="rounded-full data-[state=active]:bg-[#c48765]  data-[state=active]:text-white py-2"
-                  >
-                    {model}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-
-              <AnimatePresence mode="wait">
-                <TabsContent value="model-a">
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.3 }}
-                    className="max-w-4xl mx-auto"
-                  >
-                    <MobileModelCard
-                      title="نموذج A"
-                      image="/a.jpg"
-                      subtitle="على شارع جنوبي شرقي"
-                      area={156}
-                      roofArea={156}
-                      rooms={4}
-                      bathrooms={4}
-                      price="830,000"
-                      features={[
-                        "غرفة خادمة",
-                        "غرفة سائق",
-                        "شقق مودرن",
-                        "أسقف مرتفعة",
-                        "نوافذ كبيرة",
-                        "صالة",
-                        "مطبخ",
-                        "بلكونة",
-                        "سمارت هوم",
-                        "موقف خاص",
-                        "مصعد",
-                        "كاميرات مراقبة",
-                      ]}
-                      onInquire={handleWhatsAppClick}
-                    />
-                  </motion.div>
-                </TabsContent>
-
-                <TabsContent value="model-b">
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.3 }}
-                    className="max-w-4xl mx-auto"
-                  >
-                    <MobileModelCard
-                      title="نموذج B"
-                      image="/b.jpg"
-                      subtitle="خلفية شرقي شمالي غربي"
-                      area={190}
-                      roofArea={190}
-                      rooms={5}
-                      bathrooms={4}
-                      price="930,000"
-                      features={[
-                        "غرفة خادمة",
-                        "غرفة سائق",
-                        "شقق مودرن",
-                        "أسقف مرتفعة",
-                        "نوافذ كبيرة",
-                        "صالة",
-                        "مطبخ",
-                        "بلكونة",
-                        "سمارت هوم",
-                        "موقف خاص",
-                        "مصعد",
-                        "كاميرات مراقبة",
-                      ]}
-                      onInquire={handleWhatsAppClick}
-                    />
-                  </motion.div>
-                </TabsContent>
-
-                <TabsContent value="model-c">
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.3 }}
-                    className="max-w-4xl mx-auto"
-                  >
-                    <MobileModelCard
-                      title="نموذج C"
-                      image="/c.jpg"
-                      subtitle="واجهة جنوبية غربية"
-                      area={156}
-                      roofArea={0}
-                      rooms={4}
-                      bathrooms={4}
-                      price="830,000"
-                      features={[
-                        "غرفة خادمة",
-                        "غرفة سائق",
-                        "شقق مودرن",
-                        "أسقف مرتفعة",
-                        "نوافذ كبيرة",
-                        "صالة",
-                        "مطبخ",
-                        "بلكونة",
-                        "سمارت هوم",
-                        "موقف خاص",
-                        "مصعد",
-                        "كاميرات مراقبة",
-                      ]}
-                      onInquire={handleWhatsAppClick}
-                    />
-                  </motion.div>
-                </TabsContent>
-
-                <TabsContent value="model-d">
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.3 }}
-                    className="max-w-4xl mx-auto"
-                  >
-                    <MobileModelCard
-                      title="نموذج D"
-                      image="/a.jpg"
-                      subtitle="ملحق شرقي شمالي"
-                      area={180}
-                      roofArea={40}
-                      rooms={5}
-                      bathrooms={5}
-                      price="1,350,000"
-                      features={[
-                        "غرفة خادمة",
-                        "غرفة سائق",
-                        "شقق مودرن",
-                        "أسقف مرتفعة",
-                        "نوافذ كبيرة",
-                        "صالة",
-                        "مطبخ",
-                        "بلكونة",
-                        "سمارت هوم",
-                        "موقف خاص",
-                        "مصعد",
-                        "كاميرات مراقبة",
-                        "اجمالي المساحه 220 متر"
-                      ]}
-                      onInquire={handleWhatsAppClick}
-                    />
-                  </motion.div>
-                </TabsContent>
-              </AnimatePresence>
-            </Tabs>
-          </motion.div>
+                <AnimatePresence mode="wait">
+                  {apartments && apartments.map((apartment, index) => (
+                    <TabsContent key={apartment._id} value={`model-${apartment.modelName.toLowerCase()}`}>
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.3 }}
+                        className="max-w-4xl mx-auto"
+                      >
+                        <MobileModelCard
+                          title={apartment.modelTitle}
+                          image={apartment.images && apartment.images.length > 0 ? apartment.images[0].trim() : '/placeholder.svg'}
+                          subtitle={apartment.modelSubtitle}
+                          area={apartment.area}
+                          roofArea={apartment.roofArea || 0}
+                          rooms={apartment.rooms}
+                          bathrooms={apartment.bathrooms}
+                          price={apartment.price.toLocaleString()}
+                          features={apartment.features || []}
+                          onInquire={handleWhatsAppClick}
+                        />
+                      </motion.div>
+                    </TabsContent>
+                  ))}
+                </AnimatePresence>
+              </Tabs>
+            </motion.div>
+          )}
         </div>
       </section>
 
@@ -1112,7 +1374,7 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
       {/* Project Map */}
       <section ref={(el) => addToRefs(el, 3)} className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={isVisible[3] ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8 }}
@@ -1120,7 +1382,7 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
           >
             <h2 className="text-3xl md:text-4xl font-bold text-center text-[#34222e]">موقع المشروع</h2>
             <div className="w-20 h-1 bg-[#c48765] mx-auto mt-4"></div>
-          </motion.div>
+          </motion.div> */}
 
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -1128,38 +1390,7 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
             transition={{ duration: 0.8, delay: 0.2 }}
             className="max-w-6xl mx-auto"
           >
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-              {/* Map Container */}
-              <div className="relative w-full h-[500px] md:h-[600px] lg:h-[700px]">
-              <iframe
- src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3709.430667951573!2d39.14033718505742!3d21.60813558568744!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMjHCsDM2JzI5LjMiTiAzOcKwMDgnMTcuMyJF!5e0!3m2!1sar!2seg!4v1752662254447!5m2!1sar!2seg"                  className="absolute inset-0 w-full h-full"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="موقع المشروع على خرائط جوجل"
-              />
-              </div>
-
-              {/* Location Details */}
-              <div className="bg-[#34222e] text-white py-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="text-xl font-bold mb-2">العنوان</h3>
-                    <p className="text-gray-300">حي الزهراء، جدة، المملكة العربية السعودية</p>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold mb-2">المعالم القريبة</h3>
-                    <ul className="text-gray-300 space-y-1">
-                      <li>• طريق الأمير سلطان </li>
-                      <li>• شارع حراء</li>
-                      <li>• شارع فهد بن زعير</li>
-                    </ul>
-                  </div>
-                </div>
-
-              </div>
-            </div>
+            <MapSection />
           </motion.div>
         </div>
       </section>
@@ -1176,7 +1407,7 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
             className="fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t border-slate-200 p-3 z-40"
           >
             <div className="container mx-auto flex items-center justify-between">
-                            <a href={`tel:${getPhoneNumber()}`}>
+                            <a href={`tel:${getPhoneNumber(platform)}`}>
                               <Button
                                 onClick={handlePhoneClick}
                                 className="bg-[#34222e] hover:bg-[#c48765] text-white px-6 py-2 rounded-full shadow-md flex items-center gap-2"
@@ -1186,7 +1417,7 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
                                 <PhoneIcon className="h-4 w-4" />
                               </Button>
                             </a>
-                            <Link href={`https://wa.me/966${getPhoneNumber().substring(1)}`} target="_blank">
+                            <Link href={getWhatsAppUrl(platform)} target="_blank">
 <Button onClick={handleWhatsAppClick} className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-6 py-2 rounded-full shadow-md">
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
@@ -1309,13 +1540,12 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
                         className="w-12 h-12 rounded-full flex items-center justify-center mb-1"
                         style={{ backgroundColor: platform.color }}
                       >
-                        <Image
-                          src={`/placeholder.svg?height=24&width=24&text=${platform.name}`}
-                          alt={platform.name}
-                          width={24}
-                          height={24}
-                          className="invert"
-                        />
+                        <span className="text-white text-lg font-bold">
+                          {platform.name === "واتساب" ? "📱" : 
+                           platform.name === "تويتر" ? "🐦" : 
+                           platform.name === "فيسبوك" ? "📘" : 
+                           platform.name === "تلجرام" ? "✈️" : "📤"}
+                        </span>
                       </div>
                       <span className="text-xs">{platform.name}</span>
                     </button>
@@ -1492,7 +1722,7 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
                 {price}
               </div>
             </div>
-            <Link href={`https://wa.me/966${getPhoneNumber().substring(1)}`} target="_blank">
+            <Link href={getWhatsAppUrl(platform)} target="_blank">
 
 
             <Button
@@ -1513,4 +1743,3 @@ export default function LandingPage({ platform: propPlatform, defaultMessage }: 
     )
   }
 }
-

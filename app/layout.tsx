@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { IBM_Plex_Sans_Arabic } from 'next/font/google'
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -16,9 +16,14 @@ const ibm = IBM_Plex_Sans_Arabic({
 export const metadata: Metadata = {
   title: "مشروع 24 - حي الزهراء | امتلك منزل العمر في جدة",
   description: "مشروع سكني متميز في حي الزهراء بجدة بأسعار استثنائية تبدأ من 830000 ﷼ فقط",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
   generator: 'v0.dev',
   keywords: ["مشروع 24", "حي الزهراء", "جدة", "منزل العمر", "سكني", "أسعار استثنائية", "830000 ﷼", "امتلك منزل العمر في جدة"],
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 }
 
 export default function RootLayout({

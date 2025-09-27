@@ -203,7 +203,7 @@ export async function POST(request: Request) {
     return new NextResponse(null, { headers, status: 200 });
   }
   try {
-    const { name, phone, message, source } = await request.json();
+    const { name, phone, message, source, utmParams } = await request.json();
 
     // Validate required fields
     if (!name || !phone) {
@@ -220,6 +220,34 @@ export async function POST(request: Request) {
       subject: `استفسار جديد من ${name}`,
       html: createEmailTemplate(name, phone, message, source)
     });
+
+    // Save inquiry to database
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://backend-one-pi-32.vercel.app/api';
+      const inquiryResponse = await fetch(`${apiUrl}/inquiries`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          phone,
+          message,
+          source: 'website',
+          platform: source || 'direct',
+          status: 'new',
+          priority: 'medium',
+          utmParams: utmParams
+        })
+      });
+
+      if (!inquiryResponse.ok) {
+        console.error('Failed to save inquiry to database');
+      }
+    } catch (dbError) {
+      console.error('Error saving inquiry to database:', dbError);
+      // Continue even if database save fails
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

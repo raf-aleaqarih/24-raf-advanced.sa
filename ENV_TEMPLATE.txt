@@ -1,0 +1,24 @@
+# نموذج ملف البيئة للموقع الأصلي
+# انسخ هذا الملف إلى .env.local وقم بتحديث القيم
+
+# API Configuration
+NEXT_PUBLIC_API_URL=https://backend-one-pi-32.vercel.app/api
+
+# Admin Panel API Configuration  
+NEXT_PUBLIC_ADMIN_API_URL=https://backend-one-pi-32.vercel.app/api
+
+# Environment
+NEXT_PUBLIC_NODE_ENV=development
+
+# Site Configuration
+NEXT_PUBLIC_SITE_NAME=مشروع 24 - حي الزهراء
+NEXT_PUBLIC_SITE_DESCRIPTION=مشروع سكني متميز في حي الزهراء بجدة
+
+# Analytics
+NEXT_PUBLIC_GOOGLE_ANALYTICS_ID=
+NEXT_PUBLIC_FACEBOOK_PIXEL_ID=
+NEXT_PUBLIC_SNAPCHAT_PIXEL_ID=
+NEXT_PUBLIC_TIKTOK_PIXEL_ID=
+
+# Email Configuration (Optional - for backup email sending)
+NEXT_PUBLIC_EMAIL_SERVICE_URL=/api/send-email
