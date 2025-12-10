@@ -64,9 +64,9 @@ interface GalleryManagerProps {
   category?: string
 }
 
-export default function GalleryManager({ 
-  onImageSelect, 
-  selectedImages = [], 
+export default function GalleryManager({
+  onImageSelect,
+  selectedImages = [],
   multiSelect = false,
   showUpload = true,
   category = 'project-photos'
@@ -459,21 +459,7 @@ export default function GalleryManager({
                               </button>
                             )}
                           </Menu.Item>
-                          
-                          <Menu.Item>
-                            {({ active }) => (
-                              <button
-                                onClick={() => handleImageSelect(file)}
-                                className={cn(
-                                  'flex items-center w-full px-4 py-2 text-sm transition-colors',
-                                  active ? 'bg-gray-50 text-gray-900' : 'text-gray-700'
-                                )}
-                              >
-                                <CheckIcon className="w-4 h-4 ml-3" />
-                                اختيار
-                              </button>
-                            )}
-                          </Menu.Item>
+          
                           
                           <Menu.Item>
                             {({ active }) => (

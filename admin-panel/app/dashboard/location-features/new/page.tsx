@@ -39,7 +39,9 @@ const initialFormData: LocationFeatureFormData = {
   category: 'nearby',
   distance: '',
   displayOrder: 0,
-
+  status: 'active',
+  isVisible: true,
+  additionalInfo: ''
 }
 
 const categoryOptions = [
@@ -218,7 +220,6 @@ export default function NewLocationFeaturePage() {
               <IconSelector
                 selectedIcon={formData.icon}
                 onIconSelect={(icon) => handleInputChange('icon', icon)}
-                error={errors.icon}
               />
               {errors.icon && (
                 <p className="text-red-500 text-sm">{errors.icon}</p>

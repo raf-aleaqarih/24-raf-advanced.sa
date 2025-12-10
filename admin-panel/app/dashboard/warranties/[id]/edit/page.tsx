@@ -17,7 +17,6 @@ interface WarrantyFormData {
   warrantyType: string
   years: number
   category: string
-  status: 'active' | 'inactive'
 }
 
 const warrantyTypes = [
@@ -40,8 +39,7 @@ export default function EditWarrantyPage() {
     description: '',
     warrantyType: '',
     years: 1,
-    category: '',
-    status: 'active'
+    category: ''
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -50,7 +48,9 @@ export default function EditWarrantyPage() {
   const { data: warranty, isLoading, error } = useQuery({
     queryKey: ['warranty', warrantyId],
     queryFn: () => warrantiesApi.getById(warrantyId),
-    enabled: !!warrantyId
+    enabled: !!warrantyId,
+    retry: 3,
+    retryDelay: 1000
   })
 
   // تحديث الضمان
@@ -68,18 +68,31 @@ export default function EditWarrantyPage() {
 
   // تحديث البيانات عند تحميل الضمان
   useEffect(() => {
-    if (warranty?.data) {
-      const warrantyData = warranty.data
+    console.log('🔍 Warranty data:', warranty)
+    console.log('🔍 Is loading:', isLoading)
+    console.log('🔍 Error:', error)
+    
+    // البيانات تأتي في warranty.data.data
+    if (warranty?.data?.data) {
+      const warrantyData = warranty.data.data
+      console.log('📦 Warranty data loaded:', warrantyData)
+      
       setFormData({
         title: warrantyData.title || '',
         description: warrantyData.description || '',
         warrantyType: warrantyData.warrantyType || '',
         years: warrantyData.years || 1,
-        category: warrantyData.category || '',
-        status: warrantyData.status || 'active'
+        category: warrantyData.category || ''
       })
+      
+      console.log('✅ Form data updated')
+    } else if (warranty?.data && !warranty.data.data) {
+      console.log('⚠️ Warranty data exists but no nested data property')
+      console.log('Available keys:', Object.keys(warranty.data))
+    } else {
+      console.log('❌ No warranty data found')
     }
-  }, [warranty])
+  }, [warranty, isLoading, error])
 
   const handleInputChange = (field: keyof WarrantyFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -130,7 +143,10 @@ export default function EditWarrantyPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
         <LoadingSpinner size="large" />
+          <p className="mt-4 text-gray-600">جاري تحميل بيانات الضمان...</p>
+        </div>
       </div>
     )
   }
@@ -141,6 +157,21 @@ export default function EditWarrantyPage() {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">خطأ في تحميل البيانات</h2>
           <p className="text-gray-600 mb-4">حدث خطأ أثناء تحميل بيانات الضمان</p>
+          <p className="text-sm text-red-600 mb-4">تفاصيل الخطأ: {error.message}</p>
+          <Link href="/dashboard/warranties" className="btn-primary">
+            العودة للقائمة
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isLoading && !warranty?.data) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">الضمان غير موجود</h2>
+          <p className="text-gray-600 mb-4">لم يتم العثور على الضمان المطلوب</p>
           <Link href="/dashboard/warranties" className="btn-primary">
             العودة للقائمة
           </Link>
@@ -273,20 +304,6 @@ export default function EditWarrantyPage() {
             </div>
 
 
-            {/* الحالة */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                حالة الضمان
-              </label>
-              <select
-                value={formData.status}
-                onChange={(e) => handleInputChange('status', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-              >
-                <option value="active">نشط</option>
-                <option value="inactive">غير نشط</option>
-              </select>
-            </div>
 
             {/* الأزرار */}
             <div className="flex gap-3 pt-6 border-t border-gray-200">
@@ -318,4 +335,5 @@ export default function EditWarrantyPage() {
     </div>
   )
 }
+
 

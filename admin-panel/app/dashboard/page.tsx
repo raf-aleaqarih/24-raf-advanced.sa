@@ -57,7 +57,7 @@ export default function DashboardPage() {
 
 
       {/* Project Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Quick Stats */}
         <div className="section-card">
           <div className="section-header">
@@ -94,57 +94,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Recent Apartments */}
-        <div className="section-card">
-          <div className="section-header">
-            <h2 className="section-title">
-              نماذج الشقق المتاحة
-            </h2>
-            <a 
-              href="/dashboard/apartments" 
-              className="text-sm text-primary hover:text-primary/80 font-medium"
-            >
-              عرض الكل
-            </a>
-          </div>
-          <div className="space-y-3">
-            {apartments?.data?.data?.slice(0, 4).map((apartment: any) => (
-              <div key={apartment._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center ml-3">
-                    <span className="text-white font-bold text-sm">
-                      {apartment.name}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {apartment.title}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {apartment.area} م² - {apartment.rooms} غرف
-                    </p>
-                  </div>
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-bold text-gray-900">
-                    {apartment.price?.amount ? formatPrice(apartment.price.amount) : 'غير محدد'}
-                  </p>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                    apartment.status === 'active' 
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {apartment.status === 'active' ? 'متاح' : 'غير متاح'}
-                  </span>
-                </div>
-              </div>
-            )) || (
-              <div className="text-center py-8 text-gray-500">
-                لا توجد بيانات متاحة
-              </div>
-            )}
-          </div>
-        </div>
+
       </div>
 
       {/* Quick Actions */}

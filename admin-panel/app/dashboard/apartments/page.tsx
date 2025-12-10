@@ -16,8 +16,7 @@ import {
   CurrencyDollarIcon,
   HomeIcon
 } from '@heroicons/react/24/outline'
-import { toast, ToastContainer } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
+import { toast } from 'react-hot-toast'
 
 interface ApartmentModel {
   _id: string
@@ -76,12 +75,7 @@ const cleanFeatures = (features: string[]): string[] => {
     if (successMessage) {
       // إظهار رسالة النجاح باستخدام toastify
       toast.success(successMessage, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
+        duration: 5000,
       })
       // إزالة المعامل من URL
       window.history.replaceState({}, document.title, window.location.pathname)
@@ -399,7 +393,6 @@ const cleanFeatures = (features: string[]): string[] => {
         </div>
       )}
     </div>
-    <ToastContainer />
     </>
   )
 }
